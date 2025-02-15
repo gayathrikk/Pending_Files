@@ -1,41 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testng-results ignored="0" total="5" passed="5" failed="0" skipped="0">
+<testng-results ignored="0" total="2" passed="2" failed="0" skipped="0">
   <reporter-output>
   </reporter-output>
-  <suite started-at="2025-02-12T13:27:46 IST" name="Default suite" finished-at="2025-02-12T13:28:51 IST" duration-ms="64692">
+  <suite started-at="2025-02-15T11:02:48 IST" name="Default suite" finished-at="2025-02-15T11:03:26 IST" duration-ms="37599">
     <groups>
     </groups>
-    <test started-at="2025-02-12T13:27:46 IST" name="Default test" finished-at="2025-02-12T13:28:51 IST" duration-ms="64692">
-      <class name="TCases.Automation.Timestamp_download">
-        <test-method is-config="true" signature="setup()[pri:0, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:27:46 IST" name="setup" finished-at="2025-02-12T13:27:47 IST" duration-ms="746" status="PASS">
+    <test started-at="2025-02-15T11:02:48 IST" name="Default test" finished-at="2025-02-15T11:03:26 IST" duration-ms="37599">
+      <class name="TCases.Automation.dbquery">
+        <test-method is-config="true" signature="setup()[pri:0, instance:TCases.Automation.dbquery@1de5f259]" started-at="2025-02-15T11:02:48 IST" name="setup" finished-at="2025-02-15T11:02:49 IST" duration-ms="1009" status="PASS">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- setup -->
-        <test-method signature="Login()[pri:1, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:27:47 IST" name="Login" finished-at="2025-02-12T13:28:11 IST" duration-ms="24222" status="PASS">
+        <test-method signature="login()[pri:1, instance:TCases.Automation.dbquery@1de5f259]" started-at="2025-02-15T11:02:49 IST" name="login" finished-at="2025-02-15T11:03:04 IST" duration-ms="15254" status="PASS">
           <reporter-output>
           </reporter-output>
-        </test-method> <!-- Login -->
-        <test-method signature="table1()[pri:2, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:28:11 IST" name="table1" finished-at="2025-02-12T13:28:22 IST" duration-ms="11383" status="PASS">
+        </test-method> <!-- login -->
+        <test-method signature="analyticsEngine()[pri:2, instance:TCases.Automation.dbquery@1de5f259]" started-at="2025-02-15T11:03:04 IST" name="analyticsEngine" finished-at="2025-02-15T11:03:26 IST" duration-ms="21151" status="PASS">
           <reporter-output>
           </reporter-output>
-        </test-method> <!-- table1 -->
-        <test-method signature="Direct_Draw_page()[pri:3, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:28:22 IST" name="Direct_Draw_page" finished-at="2025-02-12T13:28:29 IST" duration-ms="6369" status="PASS">
-          <reporter-output>
-          </reporter-output>
-        </test-method> <!-- Direct_Draw_page -->
-        <test-method signature="search()[pri:4, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:28:29 IST" name="search" finished-at="2025-02-12T13:28:35 IST" duration-ms="6411" status="PASS">
-          <reporter-output>
-          </reporter-output>
-        </test-method> <!-- search -->
-        <test-method signature="drawSquareInMiddle()[pri:5, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:28:35 IST" name="drawSquareInMiddle" finished-at="2025-02-12T13:28:50 IST" duration-ms="15184" status="PASS">
-          <reporter-output>
-          </reporter-output>
-        </test-method> <!-- drawSquareInMiddle -->
-        <test-method is-config="true" signature="tearDown()[pri:0, instance:TCases.Automation.Timestamp_download@957e06]" started-at="2025-02-12T13:28:50 IST" name="tearDown" finished-at="2025-02-12T13:28:51 IST" duration-ms="347" status="PASS">
+        </test-method> <!-- analyticsEngine -->
+        <test-method is-config="true" signature="tearDown()[pri:0, instance:TCases.Automation.dbquery@1de5f259]" started-at="2025-02-15T11:03:26 IST" name="tearDown" finished-at="2025-02-15T11:03:26 IST" duration-ms="163" status="PASS">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- tearDown -->
-      </class> <!-- TCases.Automation.Timestamp_download -->
+      </class> <!-- TCases.Automation.dbquery -->
     </test> <!-- Default test -->
   </suite> <!-- Default suite -->
 </testng-results>
