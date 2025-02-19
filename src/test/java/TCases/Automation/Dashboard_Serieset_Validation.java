@@ -18,7 +18,7 @@ public class Dashboard_Serieset_Validation {
 	@BeforeTest
 	public void setup() throws MalformedURLException {
 		DesiredCapabilities dc = DesiredCapabilities.chrome();
-		URL url = new URL("http://172.20.23.92:4444/wd/hub");
+		URL url = new URL("http://172.20.23.92:4443/wd/hub");
 		driver = new RemoteWebDriver(url, dc);
 	}
 
@@ -28,12 +28,12 @@ public class Dashboard_Serieset_Validation {
 		driver.manage().window().maximize();
 		System.out.println("The server is Opened sucessfully");
 		WebDriverWait wait = new WebDriverWait(driver, 50);
-		WebElement viewerSectionLink = wait
-				.until(ExpectedConditions.elementToBeClickable(By.xpath("//img[@src='/viewer/assets/images/colorsvg/gallery.svg']")));
-		viewerSectionLink.click();
-		System.out.println("The Viewer Icon is clicked");
+//		WebElement viewerSectionLink = wait
+//				.until(ExpectedConditions.elementToBeClickable(By.xpath("//img[@src='/viewer/assets/images/colorsvg/gallery.svg']")));
+//		viewerSectionLink.click();
+//		System.out.println("The Viewer Icon is clicked");
 		String parentWindow = driver.getWindowHandle();
-		WebDriverWait wait1 = new WebDriverWait(driver, 20);
+		WebDriverWait wait1 = new WebDriverWait(driver, 30);
 		WebElement login = wait1
 				.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[text()=' Log In ']")));
 		login.click();

@@ -1,0 +1,104 @@
+package TCases.Automation;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.TreeSet;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import org.testng.annotations.Optional;
+import org.testng.annotations.Parameters;
+import org.testng.annotations.Test;
+
+public class BFI_Bio {
+    private static final String DB_URL = "jdbc:mysql://dev2mani.humanbrain.in:3306/HBA_V2";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "Health#123";
+    // We'll work with a fixed range from 1 to 3000
+    private static final int LIMIT = 3000;
+
+    @Parameters({"biosampleId"})
+    @Test
+    public void testBFIQuery(@Optional("0") String biosampleId) {
+        // Prompt user if biosampleId is not provided via TestNG
+        if ("0".equals(biosampleId)) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Enter biosample ID: ");
+            biosampleId = scanner.nextLine();
+        }
+
+        // --- Query for BFI numbers (excluding BFIW) ---
+        String queryBFI = "SELECT DISTINCT CAST(SUBSTRING_INDEX(s.jp2Path, '_', -1) AS UNSIGNED) AS number " +
+                          "FROM section s " +
+                          "WHERE s.jp2Path LIKE '%BFI%' " +
+                          "AND s.jp2Path NOT LIKE '%BFIW%' " +
+                          "AND EXISTS (SELECT 1 FROM biosample b WHERE b.id = ?) " +
+                          "AND CAST(SUBSTRING_INDEX(s.jp2Path, '_', -1) AS UNSIGNED) <= " + LIMIT + " " +
+                          "ORDER BY number ASC";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            // Retrieve BFI numbers into a sorted set to avoid duplicates and ensure order
+            Set<Integer> bfiNumbers = new TreeSet<>();
+            try (PreparedStatement pstmt = conn.prepareStatement(queryBFI)) {
+                pstmt.setString(1, biosampleId);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    bfiNumbers.add(rs.getInt("number"));
+                }
+            }
+
+            // Convert the set into a list for reporting
+            List<Integer> presentBFI = new ArrayList<>(bfiNumbers);
+            // Compute missing numbers in the range 1 to LIMIT that are not in the present list
+            List<Integer> missingBFI = computeMissingNumbers(presentBFI);
+
+            // Build a report table with two columns: "Present BFI" and "Missing BFI"
+            StringBuilder report = new StringBuilder();
+            report.append("\n================== BFI Report ==================\n");
+            report.append("------------------------------------------------------------\n");
+            report.append(String.format("| %-20s | %-20s |\n", "Present BFI", "Missing BFI"));
+            report.append("------------------------------------------------------------\n");
+
+            int maxRows = Math.max(presentBFI.size(), missingBFI.size());
+            for (int i = 0; i < maxRows; i++) {
+                String present = i < presentBFI.size() ? String.valueOf(presentBFI.get(i)) : "";
+                String missing = i < missingBFI.size() ? String.valueOf(missingBFI.get(i)) : "";
+                report.append(String.format("| %-20s | %-20s |\n", present, missing));
+            }
+            report.append("------------------------------------------------------------\n");
+
+            // Print the report to the console
+            System.out.println(report.toString());
+
+            // Write the report to a file "BFI_Output.txt"
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter("BFI_Output.txt"))) {
+                writer.write(report.toString());
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Computes missing numbers from 1 to LIMIT that are not in the given list.
+     */
+    private List<Integer> computeMissingNumbers(List<Integer> presentNumbers) {
+        List<Integer> missing = new ArrayList<>();
+        for (int i = 1; i <= LIMIT; i++) {
+            if (!presentNumbers.contains(i)) {
+                missing.add(i);
+            }
+        }
+        return missing;
+    }
+}
