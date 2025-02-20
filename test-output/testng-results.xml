@@ -2,23 +2,16 @@
 <testng-results ignored="0" total="1" passed="1" failed="0" skipped="0">
   <reporter-output>
   </reporter-output>
-  <suite started-at="2025-02-19T15:56:16 IST" name="Default suite" finished-at="2025-02-19T15:56:20 IST" duration-ms="4095">
+  <suite started-at="2025-02-20T16:05:59 IST" name="Default suite" finished-at="2025-02-20T16:06:05 IST" duration-ms="5923">
     <groups>
     </groups>
-    <test started-at="2025-02-19T15:56:16 IST" name="Default test" finished-at="2025-02-19T15:56:20 IST" duration-ms="4095">
-      <class name="TCases.Automation.BFI_Bio">
-        <test-method signature="testBFIQuery(java.lang.String)[pri:0, instance:TCases.Automation.BFI_Bio@f736069]" started-at="2025-02-19T15:56:16 IST" name="testBFIQuery" finished-at="2025-02-19T15:56:20 IST" duration-ms="4066" status="PASS">
-          <params>
-            <param index="0">
-              <value>
-                <![CDATA[0]]>
-              </value>
-            </param>
-          </params>
+    <test started-at="2025-02-20T16:05:59 IST" name="Default test" finished-at="2025-02-20T16:06:05 IST" duration-ms="5923">
+      <class name="TCases.Automation.BFIW">
+        <test-method signature="testBFIQuery()[pri:0, instance:TCases.Automation.BFIW@3232a28a]" started-at="2025-02-20T16:05:59 IST" name="testBFIQuery" finished-at="2025-02-20T16:06:05 IST" duration-ms="5897" status="PASS">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- testBFIQuery -->
-      </class> <!-- TCases.Automation.BFI_Bio -->
+      </class> <!-- TCases.Automation.BFIW -->
     </test> <!-- Default test -->
   </suite> <!-- Default suite -->
 </testng-results>

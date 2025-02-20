@@ -3,13 +3,11 @@
 <suite name="Failed suite [Default suite]" guice-stage="DEVELOPMENT">
   <test thread-count="5" name="Default test(failed)">
     <classes>
-      <class name="TCases.Automation.Timestamp_download">
+      <class name="TCases.Automation.BFI_Bio">
         <methods>
-          <include name="tearDown"/>
-          <include name="setup"/>
-          <include name="drawSquareInMiddle"/>
+          <include name="testBFIQuery"/>
         </methods>
-      </class> <!-- TCases.Automation.Timestamp_download -->
+      </class> <!-- TCases.Automation.BFI_Bio -->
     </classes>
   </test> <!-- Default test(failed) -->
 </suite> <!-- Failed suite [Default suite] -->
