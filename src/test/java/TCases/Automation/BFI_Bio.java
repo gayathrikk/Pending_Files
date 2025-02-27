@@ -13,35 +13,30 @@ public class BFI_Bio {
 
     @Test
     public void testBFIQuery() {
-        // Get parameters from Jenkins
-        String biosampleId = System.getProperty("BIOSAMPLE_ID");
-        String limitStr = System.getProperty("LIMIT_VALUE");
+        // Read parameters passed from Jenkins
+        String biosampleId = System.getProperty("biosampleId");
+        String limitStr = System.getProperty("limit");
 
-        // If parameters are missing, ask for manual input
+        // Validate biosampleId
         if (biosampleId == null || biosampleId.isEmpty()) {
-            System.out.print("Enter Biosample ID: ");
-            Scanner scanner = new Scanner(System.in);
-            biosampleId = scanner.nextLine().trim();
+            System.out.println("Error: biosampleId parameter is missing! Check Jenkins configuration.");
+            return;
         }
 
-        if (limitStr == null || limitStr.isEmpty()) {
-            System.out.print("Enter the Limit Value: ");
-            Scanner scanner = new Scanner(System.in);
-            limitStr = scanner.nextLine().trim();
-        }
-
+        // Validate limit value
         int limit;
         try {
             limit = Integer.parseInt(limitStr);
         } catch (NumberFormatException e) {
-            System.out.println("Invalid limit value. Please enter a number.");
+            System.out.println("Error: Invalid limit value. Please enter a number.");
             return;
         }
 
         System.out.println("Using Biosample ID: " + biosampleId);
         System.out.println("Using Limit Value: " + limit);
-        System.out.flush();
+        System.out.flush(); // Ensure output is visible in Jenkins logs
 
+        // SQL Query
         String queryBFI = "SELECT DISTINCT " +
                           "SUBSTRING( " +
                           "s.jp2Path, " +
@@ -77,30 +72,38 @@ public class BFI_Bio {
             return;
         }
 
+        // Compute missing numbers
         List<Integer> presentBFI = new ArrayList<>(bfiNumbers);
         List<Integer> missingBFI = computeMissingNumbers(presentBFI, limit);
 
-        StringBuilder report = new StringBuilder();
-        report.append("\n================== BFI Report ==================\n");
-        report.append("-------------------------------------\n");
-        report.append(String.format("| %-15s | %-15s |\n", "Present BFI", "Missing BFI"));
-        report.append("-------------------------------------\n");
-        int maxRows = Math.max(presentBFI.size(), missingBFI.size());
-        for (int i = 0; i < maxRows; i++) {
-            String present = i < presentBFI.size() ? String.valueOf(presentBFI.get(i)) : "";
-            String missing = i < missingBFI.size() ? String.valueOf(missingBFI.get(i)) : "";
-            report.append(String.format("| %-15s | %-15s |\n", present, missing));
-        }
-        report.append("-------------------------------------\n");
+        // Generate Report
+      StringBuilder report = new StringBuilder();
+report.append("\n================== BFI Report ==================\n");
+report.append("Biosample ID: ").append(biosampleId).append("\n");
+report.append("Limit Value  : ").append(limit).append("\n");
+report.append("-------------------------------------\n");
+report.append(String.format("| %-15s | %-15s |\n", "Present BFI", "Missing BFI"));
+report.append("-------------------------------------\n");
 
-        System.out.println(report.toString());
-        System.out.flush(); // Ensures output is visible in Jenkins
+int maxRows = Math.max(presentBFI.size(), missingBFI.size());
+for (int i = 0; i < maxRows; i++) {
+    String present = i < presentBFI.size() ? String.valueOf(presentBFI.get(i)) : "";
+    String missing = i < missingBFI.size() ? String.valueOf(missingBFI.get(i)) : "";
+    report.append(String.format("| %-15s | %-15s |\n", present, missing));
+}
+report.append("-------------------------------------\n");
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("BFI_Output.txt"))) {
-            writer.write(report.toString());
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
+// Print report in Jenkins console
+System.out.println(report.toString());
+System.out.flush();
+
+// Write report to file
+try (BufferedWriter writer = new BufferedWriter(new FileWriter("BFI_Output.txt"))) {
+    writer.write(report.toString());
+} catch (IOException ioe) {
+    ioe.printStackTrace();
+}
+
     }
 
     private List<Integer> computeMissingNumbers(List<Integer> presentNumbers, int limit) {

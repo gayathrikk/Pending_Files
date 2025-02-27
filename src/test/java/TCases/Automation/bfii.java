@@ -1,87 +1,106 @@
 package TCases.Automation;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.TreeSet;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.testng.annotations.Optional;
-import org.testng.annotations.Parameters;
+import com.jcraft.jsch.*;
 import org.testng.annotations.Test;
 
 public class bfii {
-    private static final String DB_URL = "jdbc:mysql://dev2mani.humanbrain.in:3306/HBA_V2";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Health#123";
 
-    @Parameters({"biosampleId"})
+    private static final String HOST = "pp2.humanbrain.in";
+    private static final int PORT = 22;
+    private static final String USER = "appUser";
+    private static final String PASSWORD = "Brain@123";
+
     @Test
-    public void testBFIQuery(@Optional String biosampleId) {
-        if (biosampleId == null) {
-            Scanner scanner = new Scanner(System.in);
-            System.out.print("Enter biosample ID: ");
-            biosampleId = scanner.nextLine();
-        }
+    public void testMissingFiles() {
+        // Prompt the user for manual input
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter Biosample: ");
+        String biosample = scanner.nextLine().trim();
+        System.out.print("Enter Series (e.g., BFI, MRI): ");
+        String series = scanner.nextLine().trim();
 
-        // SQL query for BFI
-        String query = "SELECT DISTINCT CAST(SUBSTRING_INDEX(s.jp2Path, '_', -1) AS UNSIGNED) AS number " +
-                       "FROM section s " +
-                       "WHERE s.jp2Path LIKE '%BFI%' " +
-                       "AND EXISTS (SELECT 1 FROM biosample b WHERE b.id = ?) " +
-                       "ORDER BY number";
+        // Retrieve missing sections based on the remote file listing
+        List<Integer> missingSections = findMissingSections(biosample, series);
+        System.out.println("Missing Sections (Test): " + missingSections);
+        scanner.close();
+    }
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+    public static List<Integer> findMissingSections(String biosample, String series) {
+        List<Integer> missingSections = new ArrayList<>();
+        Set<Integer> existingSections = new HashSet<>();
 
-            pstmt.setString(1, biosampleId);
-            ResultSet rs = pstmt.executeQuery();
+        try {
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(USER, HOST, PORT);
+            session.setPassword(PASSWORD);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
 
-            // Use a TreeSet to store and sort the numbers
-            Set<Integer> bfiNumbers = new TreeSet<>();
-            while (rs.next()) {
-                int number = rs.getInt("number");
-                bfiNumbers.add(number);
-            }
+            String path = "/lustre/data/store10PB/repos1/iitlab/humanbrain/analytics/" + biosample + "/" + series;
+            // Command to list files matching the _thumbnail_small.jpg pattern
+            String listCommand = "cd " + path + " && ls -alh | grep '_thumbnail_small.jpg'";
+            ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
+            channelExec.setCommand(listCommand);
+            channelExec.setInputStream(null);
+            channelExec.setErrStream(System.err);
 
-            // Convert to a list for easier handling
-            List<Integer> bfiList = new ArrayList<>(bfiNumbers);
+            InputStream inputStream = channelExec.getInputStream();
+            channelExec.connect();
 
-            // Compute missing numbers from the smallest BFI to 3000
-            List<Integer> missingNumbers = new ArrayList<>();
-            if (!bfiNumbers.isEmpty()) {
-                int min = bfiList.get(0); // smallest BFI number
-                for (int i = min; i <= 3000; i++) {
-                    if (!bfiNumbers.contains(i)) {
-                        missingNumbers.add(i);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Debug output to verify the file listing
+                System.out.println("DEBUG: " + line);
+                String sectionNumber = extractSectionNumber(line);
+                if (sectionNumber != null) {
+                    try {
+                        existingSections.add(Integer.parseInt(sectionNumber));
+                    } catch (NumberFormatException e) {
+                        System.out.println("Error parsing section number: " + sectionNumber);
                     }
                 }
             }
+            reader.close();
+            channelExec.disconnect();
+            session.disconnect();
 
-            // Print results in a table with two columns: BFI List and Missing Numbers
-            System.out.println("\n-----------------------------------------");
-            System.out.printf("| %-13s | %-15s |%n", "BFI List", "Missing Numbers");
-            System.out.println("-----------------------------------------");
-
-            int maxRows = Math.max(bfiList.size(), missingNumbers.size());
-            for (int i = 0; i < maxRows; i++) {
-                String bfiValue = i < bfiList.size() ? String.valueOf(bfiList.get(i)) : "";
-                String missingValue = i < missingNumbers.size() ? String.valueOf(missingNumbers.get(i)) : "";
-                System.out.printf("| %-13s | %-15s |%n", bfiValue, missingValue);
+            // Determine missing sections based on the contiguous range found
+            if (!existingSections.isEmpty()) {
+                int minSection = Collections.min(existingSections);
+                int maxSection = Collections.max(existingSections);
+                for (int i = minSection; i <= maxSection; i++) {
+                    if (!existingSections.contains(i)) {
+                        missingSections.add(i);
+                    }
+                }
             }
-            System.out.println("-----------------------------------------");
-
-            if (bfiList.isEmpty()) {
-                System.out.println("No BFI records found for biosample ID: " + biosampleId);
-            }
-
-        } catch (SQLException e) {
+        } catch (JSchException | IOException e) {
             e.printStackTrace();
+            System.out.println("❌ SSH Connection Failed! Check Network & Credentials.");
         }
+        return missingSections;
+    }
+
+    /**
+     * Extracts the section number from a filename line using a regex.
+     * Expected file pattern (any leading info allowed):
+     * ...BFI-SE_<number>_thumbnail_small.jpg...
+     */
+    public static String extractSectionNumber(String line) {
+        Pattern pattern = Pattern.compile(".*BFI-SE_(\\d+)_thumbnail_small\\.jpg.*");
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 }

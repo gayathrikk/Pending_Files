@@ -79,6 +79,18 @@
     <version>2.14.2</version>
 </dependency>
 
+    <dependency>
+        <groupId>org.apache.poi</groupId>
+        <artifactId>poi-ooxml</artifactId>
+        <version>5.2.3</version> <!-- Ensure this is the latest version -->
+    </dependency>
+<dependency>
+        <groupId>com.sun.mail</groupId>
+        <artifactId>jakarta.mail</artifactId>
+        <version>2.0.1</version>
+    </dependency>
+
+
   </dependencies>
 
   <build>
@@ -127,7 +139,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.0.0-M5</version>
           <configuration>
-            <test>TCases.Automation.BFIW</test>
+            <test>TCases.Automation.ScaningPendingFIles</test>
           </configuration>
         </plugin>
       </plugins>
