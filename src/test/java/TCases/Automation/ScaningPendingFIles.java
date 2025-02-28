@@ -39,7 +39,7 @@ public class ScaningPendingFIles {
 
         try {
             JSch jsch = new JSch();
-            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);
+            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);  // Fully qualified for SSH Session
             sshSession.setPassword(PASSWORD);
             sshSession.setConfig("StrictHostKeyChecking", "no");
             sshSession.connect();
@@ -130,6 +130,7 @@ public class ScaningPendingFIles {
             sendEmail(emailBody.toString());
         }
     }
+
     private int getTotalPendingFiles() {
         // Logic to count the total number of pending files across all machines
         int total = 0;
@@ -141,6 +142,7 @@ public class ScaningPendingFIles {
         }
         return total;
     }
+
     private void printFormattedFile(String file) {
         String[] parts = file.split("\\s+");
         if (parts.length >= 9) {
@@ -190,4 +192,4 @@ public class ScaningPendingFIles {
             System.out.println("Failed to send email: " + e.getMessage());
         }
     }
-} 
+}
