@@ -1,17 +1,14 @@
 package TCases.Automation;
 
 import com.jcraft.jsch.*;
-import org.testng.Assert;
-import org.testng.annotations.*;
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ScaningPendingFIles {
-
     private static final int PORT = 22;
     private static final String USER = "appUser";
     private static final String PASSWORD = "Brain@123";
@@ -29,7 +26,7 @@ public class ScaningPendingFIles {
     }
 
     private String getCurrentDate() {
-        return new SimpleDateFormat("MMM dd").format(new Date()); // Example: Feb 27
+        return new java.text.SimpleDateFormat("MMM dd").format(new Date()); // Example: Feb 27
     }
 
     private Map<String, List<String>> getFiles(String host, String directory) {
@@ -38,9 +35,8 @@ public class ScaningPendingFIles {
         Map<String, List<String>> result = new HashMap<>();
 
         try {
-            // For SSH, use com.jcraft.jsch.Session
-            com.jcraft.jsch.JSch jsch = new com.jcraft.jsch.JSch();
-            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);
+            JSch jsch = new JSch();
+            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);  // Fully qualified for SSH Session
             sshSession.setPassword(PASSWORD);
             sshSession.setConfig("StrictHostKeyChecking", "no");
             sshSession.connect();
@@ -91,20 +87,15 @@ public class ScaningPendingFIles {
 
             System.out.println("\n================================== " + host + " ==================================");
 
+            // Display current files in tabular format
             if (!currentFiles.isEmpty()) {
                 System.out.println("Current Files:");
-                System.out.println("---------------------------------------------------------------------------------------");
-                System.out.println("Permissions    Size     Date       Time              Filename");
-                System.out.println("---------------------------------------------------------------------------------------");
-                for (String file : currentFiles) {
-                    printFormattedFile(file);
-                }
+                printFileTable(currentFiles);
             } else {
                 System.out.println("No new files added today on " + host);
             }
 
-            System.out.println();
-
+            // Display pending files in tabular format and append to email body
             if (!pendingFiles.isEmpty()) {
                 hasPendingFiles = true;
                 emailBody.append("\n========== ").append(host).append(" ==========\n");
@@ -113,22 +104,29 @@ public class ScaningPendingFIles {
                 emailBody.append("------------------------------------------------------\n");
 
                 System.out.println("Pending Files:");
-                System.out.println("Permissions      Size     Date       Time   Filename");
-                System.out.println("------------------------------------------------------");
+                printFileTable(pendingFiles);
                 for (String file : pendingFiles) {
-                    printFormattedFile(file);
                     emailBody.append(file).append("\n");
                 }
             } else {
                 System.out.println("No pending files remaining on " + host);
             }
 
+            // Assert to ensure files are fetched successfully
             Assert.assertNotNull(files, "Failed to fetch files from " + host);
         }
 
-        // Send email if pending files exist
+        // Send email if there are pending files
         if (hasPendingFiles) {
             sendEmail(emailBody.toString());
+        }
+    }
+
+    private void printFileTable(List<String> files) {
+        System.out.println("Permissions      Size     Date       Time   Filename");
+        System.out.println("------------------------------------------------------");
+        for (String file : files) {
+            printFormattedFile(file);
         }
     }
 
@@ -156,7 +154,7 @@ public class ScaningPendingFIles {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
 
-        javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new javax.mail.Authenticator() {
+        javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(senderEmail, senderPassword);
             }
