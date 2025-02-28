@@ -3,7 +3,6 @@ package TCases.Automation;
 import com.jcraft.jsch.*;
 import org.testng.Assert;
 import org.testng.annotations.*;
-
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.BufferedReader;
@@ -12,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ScaningPendingFIles {
+
     private static final int PORT = 22;
     private static final String USER = "appUser";
     private static final String PASSWORD = "Brain@123";
@@ -38,9 +38,9 @@ public class ScaningPendingFIles {
         Map<String, List<String>> result = new HashMap<>();
 
         try {
-            JSch jsch = new JSch();
-            // Fully qualified for SSH Session
-            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT); 
+            // For SSH, use com.jcraft.jsch.Session
+            com.jcraft.jsch.JSch jsch = new com.jcraft.jsch.JSch();
+            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);
             sshSession.setPassword(PASSWORD);
             sshSession.setConfig("StrictHostKeyChecking", "no");
             sshSession.connect();
@@ -132,18 +132,6 @@ public class ScaningPendingFIles {
         }
     }
 
-    private int getTotalPendingFiles() {
-        // Logic to count the total number of pending files across all machines
-        int total = 0;
-        for (Map.Entry<String, String> entry : MACHINES.entrySet()) {
-            String host = entry.getKey();
-            Map<String, List<String>> files = getFiles(host, entry.getValue());
-            List<String> pendingFiles = files.get("pendingFiles");
-            total += pendingFiles.size();
-        }
-        return total;
-    }
-
     private void printFormattedFile(String file) {
         String[] parts = file.split("\\s+");
         if (parts.length >= 9) {
@@ -168,7 +156,7 @@ public class ScaningPendingFIles {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
 
-        javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new Authenticator() {
+        javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new javax.mail.Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(senderEmail, senderPassword);
             }
