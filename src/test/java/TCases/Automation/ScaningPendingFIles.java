@@ -130,7 +130,17 @@ public class ScaningPendingFIles {
             sendEmail(emailBody.toString());
         }
     }
-
+    private int getTotalPendingFiles() {
+        // Logic to count the total number of pending files across all machines
+        int total = 0;
+        for (Map.Entry<String, String> entry : MACHINES.entrySet()) {
+            String host = entry.getKey();
+            Map<String, List<String>> files = getFiles(host, entry.getValue());
+            List<String> pendingFiles = files.get("pendingFiles");
+            total += pendingFiles.size();
+        }
+        return total;
+    }
     private void printFormattedFile(String file) {
         String[] parts = file.split("\\s+");
         if (parts.length >= 9) {
@@ -168,10 +178,16 @@ public class ScaningPendingFIles {
             message.setSubject("Alert: Pending Files Found");
             message.setText("The following pending files were found:\n" + emailBody);
 
+            // Logging the sending attempt
+            System.out.println("Attempting to send email...");
+            
             Transport.send(message);
+
+            // Logging success
             System.out.println("Pending files email sent successfully!");
         } catch (MessagingException e) {
             e.printStackTrace();
+            System.out.println("Failed to send email: " + e.getMessage());
         }
     }
 } 
