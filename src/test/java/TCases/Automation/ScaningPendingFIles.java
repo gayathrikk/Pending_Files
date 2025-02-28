@@ -11,7 +11,7 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class PendingFilesTest {
+public class ScaningPendingFIles {
     private static final int PORT = 22;
     private static final String USER = "appUser";
     private static final String PASSWORD = "Brain@123";
@@ -39,8 +39,8 @@ public class PendingFilesTest {
 
         try {
             JSch jsch = new JSch();
-            // Use the fully qualified name for SSH Session
-            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);
+            // Fully qualified for SSH Session
+            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT); 
             sshSession.setPassword(PASSWORD);
             sshSession.setConfig("StrictHostKeyChecking", "no");
             sshSession.connect();
@@ -168,7 +168,6 @@ public class PendingFilesTest {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
 
-        // Use javax.mail.Session for email
         javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(senderEmail, senderPassword);
