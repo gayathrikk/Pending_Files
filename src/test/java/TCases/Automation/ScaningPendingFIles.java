@@ -9,174 +9,147 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ScaningPendingFIles {
-    private static final int PORT = 22;
-    private static final String USER = "appUser";
-    private static final String PASSWORD = "Brain@123";
-
-    private static final Map<String, String> MACHINES = new HashMap<>();
-
-    static {
-        MACHINES.put("pp1.humanbrain.in", "/store/nvmestorage/postImageProcessor");
-        MACHINES.put("pp2.humanbrain.in", "/mnt/local/nvmestorage/postImageProcessor");
-        MACHINES.put("pp3.humanbrain.in", "/mnt/local/nvmestorage/postImageProcessor");
-        MACHINES.put("pp4.humanbrain.in", "/mnt/local/nvmestorage/postImageProcessor");
-        MACHINES.put("pp5.humanbrain.in", "/mnt/local/nvmestorage/postImageProcessor");
-        MACHINES.put("pp7.humanbrain.in", "/mnt/local/nvmestorage/postImageProcessor");
-        MACHINES.put("qd4.humanbrain.in", "/mnt/local/nvme2/postImageProcessor");
-    }
-
-    private String getCurrentDate() {
-        return new java.text.SimpleDateFormat("MMM dd").format(new Date()); // Example: Feb 27
-    }
-
-    private Map<String, List<String>> getFiles(String host, String directory) {
-        List<String> pendingFiles = new ArrayList<>();
-        List<String> currentFiles = new ArrayList<>();
-        Map<String, List<String>> result = new HashMap<>();
+   @Test
+    public void testStorageDetails() {
+        // Set up SSH connection
+        JSch jsch = new JSch();
+        com.jcraft.jsch.Session session = null;
 
         try {
-            JSch jsch = new JSch();
-            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);  // Fully qualified for SSH Session
-            sshSession.setPassword(PASSWORD);
-            sshSession.setConfig("StrictHostKeyChecking", "no");
-            sshSession.connect();
+            // Replace these with your SSH server details
+            String user = "hbp";
+            String host = "pp3v15.humanbrain.in";
+            String password = "Health#123";
+            int port = 22;
 
-            ChannelExec channelExec = (ChannelExec) sshSession.openChannel("exec");
-            channelExec.setCommand("ls -lh --time-style='+%b %d %H:%M' " + directory);
-            channelExec.setInputStream(null);
-            channelExec.setErrStream(System.err);
+            // Establish SSH session
+            session = jsch.getSession(user, host, port);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(channelExec.getInputStream()));
-            channelExec.connect();
+            // Execute command on SSH server
+            Channel channel = session.openChannel("exec");
+            // Command to retrieve storage details
+            ((ChannelExec) channel).setCommand("df -h /store");
+            channel.setInputStream(null);
+            ((ChannelExec) channel).setErrStream(System.err);
 
-            String currentDate = getCurrentDate();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.matches(".*[0-9]{2}:[0-9]{2}.*")) { // Ensuring it matches timestamp format
-                    if (line.contains(currentDate)) {
-                        currentFiles.add(line);
-                    } else {
-                        pendingFiles.add(line);
-                    }
+            // Get output
+            InputStream in = channel.getInputStream();
+            channel.connect();
+
+            byte[] tmp = new byte[1024];
+            StringBuilder output = new StringBuilder();
+
+            while (true) {
+                while (in.available() > 0) {
+                    int i = in.read(tmp, 0, 1024);
+                    if (i < 0) break;
+                    output.append(new String(tmp, 0, i));
+                }
+                if (channel.isClosed()) {
+                    if (in.available() > 0) continue;
+                    System.out.println("Exit status: " + channel.getExitStatus());
+                    break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception ee) {
+                    ee.printStackTrace();
                 }
             }
 
-            channelExec.disconnect();
-            sshSession.disconnect();
+            // Parse and format output as table
+            String[] lines = output.toString().split("\n");
+
+            System.out.println("+------------------------------------+------+-------+-------+--------+----------------------+");
+            System.out.println("|       Filesystem                   | Size | Used  | Avail |  Use%  | Mounted on           |");
+            System.out.println("+------------------------------------+------+-------+-------+--------+----------------------+");
+
+            StringBuilder emailContent = new StringBuilder();
+            boolean sendEmail = false;
+
+            for (int i = 1; i < lines.length; i++) {
+                String[] parts = lines[i].trim().split("\\s+");
+                System.out.printf("| %-34s | %4s | %5s | %5s | %6s | %-20s |\n", parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+                System.out.println("+------------------------------------+------+-------+-------+--------+----------------------+");
+                
+                // Check if Use% is greater than 70%
+                int usePercent = Integer.parseInt(parts[4].replace("%", ""));
+                if (usePercent > 70) {
+                    sendEmail = true;
+                   // emailContent.append(String.format("Filesystem: %s, Use%%: %s\n", parts[0], parts[4]));
+                }
+            }
+
+            // Send email if necessary
+            if (sendEmail) {
+                sendEmailAlert(emailContent.toString());
+            }
+
+            channel.disconnect();
+            session.disconnect();
+
         } catch (Exception e) {
             e.printStackTrace();
-        }
-
-        result.put("currentFiles", currentFiles);
-        result.put("pendingFiles", pendingFiles);
-        return result;
-    }
-
-    @Test
-    public void testFiles() {
-        StringBuilder emailBody = new StringBuilder();
-        boolean hasPendingFiles = false;
-
-        for (Map.Entry<String, String> entry : MACHINES.entrySet()) {
-            String host = entry.getKey();
-            String directory = entry.getValue();
-
-            Map<String, List<String>> files = getFiles(host, directory);
-            List<String> currentFiles = files.get("currentFiles");
-            List<String> pendingFiles = files.get("pendingFiles");
-
-            System.out.println("\n================================== " + host + " ==================================");
-
-            // Display current files in tabular format
-            if (!currentFiles.isEmpty()) {
-                System.out.println("Current Files:");
-                printFileTable(currentFiles);
-            } else {
-                System.out.println("No new files added today on " + host);
-            }
-
-            // Display pending files in tabular format and append to email body
-            if (!pendingFiles.isEmpty()) {
-                hasPendingFiles = true;
-                emailBody.append("\n========== ").append(host).append(" ==========\n");
-                emailBody.append("Pending Files:\n");
-                emailBody.append("Permissions      Size     Date       Time   Filename\n");
-                emailBody.append("------------------------------------------------------\n");
-
-                System.out.println("Pending Files:");
-                printFileTable(pendingFiles);
-                for (String file : pendingFiles) {
-                    emailBody.append(file).append("\n");
-                }
-            } else {
-                System.out.println("No pending files remaining on " + host);
-            }
-
-            // Assert to ensure files are fetched successfully
-            Assert.assertNotNull(files, "Failed to fetch files from " + host);
-        }
-
-        // Send email if there are pending files
-        if (hasPendingFiles) {
-            sendEmail(emailBody.toString());
+            System.out.println("Test encountered an exception: " + e.getMessage());
         }
     }
 
-    private void printFileTable(List<String> files) {
-        System.out.println("Permissions      Size     Date       Time   Filename");
-        System.out.println("------------------------------------------------------");
-        for (String file : files) {
-            printFormattedFile(file);
-        }
-    }
-
-    private void printFormattedFile(String file) {
-        String[] parts = file.split("\\s+");
-        if (parts.length >= 9) {
-            String permissions = parts[0];
-            String size = parts[4];
-            String date = parts[5] + " " + parts[6];
-            String time = parts[7];
-            String filename = String.join(" ", Arrays.copyOfRange(parts, 8, parts.length));
-
-            System.out.printf("%-14s %-8s %-10s %-6s %s%n", permissions, size, date, time, filename);
-        }
-    }
-
-    private void sendEmail(String emailBody) {
-        final String senderEmail = "softwaretestingteam9@gmail.com"; // Change this
-        final String senderPassword = "Health#123"; // Change this (Use App Password)
-        final String recipientEmail = "annotatin.divya@gmail.com, venip@htic.iitm.ac.in, nathan.i@htic.iitm.ac.in"; // Change this
-
-        Properties props = new Properties();
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-
-        javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(senderEmail, senderPassword);
-            }
-        });
-
-        try {
-            Message message = new MimeMessage(mailSession);
-            message.setFrom(new InternetAddress(senderEmail));
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipientEmail));
-            message.setSubject("Alert: Pending Files Found");
-            message.setText("The following pending files were found:\n" + emailBody);
-
-            // Logging the sending attempt
-            System.out.println("Attempting to send email...");
-            
+    private void sendEmailAlert(String messageBody) {
+	        // Recipient's email ID needs to be mentioned.
+	    //  String[] to = {"annotation.divya@gmail.com"}; 
+	    	String[] to = {"karthik6595@gmail.com"};
+	    	 // String[] cc = {"divya.d@htic.ittm.ac.in"};
+	       String[] cc = {"chinna02jobroi@gmail.com", "meerannagoor84@gmail.com", "sindhu.r@htic.iitm.ac.in", "nathan.i@htic.iitm.ac.in", "divya.d@htic.iitm.ac.in", "lavanyabotcha@htic.iitm.ac.in", "venip@htic.iitm.ac.in"};
+	        String[] bcc = {};  	
+	      //  String[] to = {"karthik6595@gmail.com","annotation.divya@gmail.com", "gayathrigayu0918@gmail.com","nathan.i@htic.iitm.ac.in","venip@htic.iitm.ac.in", "lavanyabotcha@htic.iitm.ac.in"}; 
+	        // Sender's email ID needs to be mentioned
+	        String from = "gayathri@htic.iitm.ac.in";
+	        // Assuming you are sending email through Gmail's SMTP
+	        String host = "smtp.gmail.com";
+	        // Get system properties
+	        Properties properties = System.getProperties();
+	        // Setup mail server
+	        properties.put("mail.smtp.host", host);
+	        properties.put("mail.smtp.port", "465");
+	        properties.put("mail.smtp.ssl.enable", "true");
+	        properties.put("mail.smtp.auth", "true");
+	        // Get the Session object and pass username and password
+	        Session session = Session.getInstance(properties, new javax.mail.Authenticator() {
+	            protected PasswordAuthentication getPasswordAuthentication() {
+	                return new PasswordAuthentication("gayathri@htic.iitm.ac.in", "Gayu@0918");
+	            }
+	        });
+	        // Used to debug SMTP issues
+	        session.setDebug(true);
+	        try {
+	            // Create a default MimeMessage object.
+	            MimeMessage message = new MimeMessage(session);
+	            // Set From: header field of the header.
+	            message.setFrom(new InternetAddress(from));
+	            // Set To: header field of the header.
+	            for (String recipient : to) {
+	                message.addRecipient(Message.RecipientType.TO, new InternetAddress(recipient));
+	            }
+	            for (String ccRecipient : cc) {
+	                message.addRecipient(Message.RecipientType.CC, new InternetAddress(ccRecipient));
+	            }
+	            for (String bccRecipient : bcc) {
+	                message.addRecipient(Message.RecipientType.BCC, new InternetAddress(bccRecipient));
+	            }
+            // Set Subject: header field
+            message.setSubject("PP3V15.humanbrain.in - STORAGE ALERT ⚠️ ");
+            // Set the actual message
+            message.setText("This email has been automatically generated:\n" + messageBody + "Attention and Action Required 🚨\n" + messageBody
+                    + "\nPP3V15 **scanner_3.1_nvmeShare** storage utilization has crossed 70% 🚫:\n" + messageBody);
+            System.out.println("sending...");
+            // Send message
             Transport.send(message);
-
-            // Logging success
-            System.out.println("Pending files email sent successfully!");
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            System.out.println("Failed to send email: " + e.getMessage());
+            System.out.println("Sent message successfully....");
+        } catch (MessagingException mex) {
+            mex.printStackTrace();
         }
     }
 }
