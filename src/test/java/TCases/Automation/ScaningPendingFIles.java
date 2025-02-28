@@ -39,7 +39,8 @@ public class ScaningPendingFIles {
 
         try {
             JSch jsch = new JSch();
-            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);  // Fully qualified for SSH Session
+            // For SSH session, use the fully qualified name com.jcraft.jsch.Session
+            com.jcraft.jsch.Session sshSession = jsch.getSession(USER, host, PORT);
             sshSession.setPassword(PASSWORD);
             sshSession.setConfig("StrictHostKeyChecking", "no");
             sshSession.connect();
@@ -167,6 +168,7 @@ public class ScaningPendingFIles {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
 
+        // For Email session, use javax.mail.Session
         javax.mail.Session mailSession = javax.mail.Session.getInstance(props, new Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(senderEmail, senderPassword);
